@@ -85,13 +85,13 @@ public class UserController {
         return ResponseEntity.ok("Login Successful.");
     }
 
-//    @GetMapping("/user/me")
-//    public ResponseEntity<User> getLoggedInUser(@CookieValue("jwt") String token) {
-//        String email = jwtUtil.validateTokenAndGetEmail(token);
-//        User user = urepo.findByEmail(email);
-//        user.setPassword(null);
-//        return ResponseEntity.ok(user);
-//    }
+    @GetMapping("/user/me")
+    public ResponseEntity<User> getLoggedInUser(@CookieValue("jwt") String token) {
+        String email = jwtUtil.validateTokenAndGetEmail(token);
+        User user = urepo.findByEmail(email);
+        user.setPassword(null);
+        return ResponseEntity.ok(user);
+    }
 
 
 
