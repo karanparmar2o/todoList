@@ -63,11 +63,14 @@ public class UserController {
         urepo.delete(user);
         return ResponseEntity.ok(user);
     }
-    @PostMapping("/user/login")
+    @PostMapping("/users/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
         User user = urepo.findByEmail(loginRequest.getEmail());
+        System.out.println("inside login");
 
         if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            System.out.println("password is wrong");
+
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Invalid email or password");
         }
@@ -82,13 +85,13 @@ public class UserController {
         return ResponseEntity.ok("Login Successful.");
     }
 
-    @GetMapping("/user/me")
-    public ResponseEntity<User> getLoggedInUser(@CookieValue("jwt") String token) {
-        String email = jwtUtil.validateTokenAndGetEmail(token);
-        User user = urepo.findByEmail(email);
-        user.setPassword(null);
-        return ResponseEntity.ok(user);
-    }
+//    @GetMapping("/user/me")
+//    public ResponseEntity<User> getLoggedInUser(@CookieValue("jwt") String token) {
+//        String email = jwtUtil.validateTokenAndGetEmail(token);
+//        User user = urepo.findByEmail(email);
+//        user.setPassword(null);
+//        return ResponseEntity.ok(user);
+//    }
 
 
 
