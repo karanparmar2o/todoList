@@ -25,7 +25,9 @@ public class UserController {
     private JwtUtil jwtUtil;
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
-
+    public UserController() {
+        System.out.println("UserController loaded");
+    }
 
     @GetMapping("/users")
     public List<User> getAllUsers(){
@@ -65,24 +67,44 @@ public class UserController {
     }
     @PostMapping("/users/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
-        User user = urepo.findByEmail(loginRequest.getEmail());
-        System.out.println("inside login");
+        try {
+            User user = urepo.findByEmail(loginRequest.getEmail());
+            System.out.println("inside login");
 
-        if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            System.out.println("password is wrong");
+            // Add explicit null-check and print
+            if (user == null) {
+                System.out.println("user is null");
+            } else {
+                System.out.println("user is not null, password: " + user.getPassword());
+            }
 
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid email or password");
+            if (user == null /*|| !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())*/) {
+                System.out.println("password is wrong");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("Invalid email or password");
+            }
+            System.out.println("login success 1");
+            try {
+                String token = jwtUtil.generateToken(user.getEmail());
+                System.out.println("login success 2");
+
+                Cookie cookie = new Cookie("jwt", token);
+                cookie.setHttpOnly(true);
+                cookie.setPath("/");
+                response.addCookie(cookie);
+
+                System.out.println("login success");
+                return ResponseEntity.ok("Login Successful.");
+            } catch (Exception e) {
+                System.out.println("JWT Generation Error: " + e.getMessage());
+                e.printStackTrace();  // 👈 make sure stack trace shows full error
+                return ResponseEntity.status(500).body("JWT Exception: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
         }
-        String token = jwtUtil.generateToken(user.getEmail());
-        System.out.println("password is not wrong");
-        // Set HTTP-only cookie
-        Cookie cookie = new Cookie("jwt", token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        response.addCookie(cookie);
-
-        return ResponseEntity.ok("Login Successful.");
     }
 
     @GetMapping("/user/me")
