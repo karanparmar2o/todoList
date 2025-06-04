@@ -75,7 +75,7 @@ public class UserController {
                     .body("Invalid email or password");
         }
         String token = jwtUtil.generateToken(user.getEmail());
-
+        System.out.println("password is not wrong");
         // Set HTTP-only cookie
         Cookie cookie = new Cookie("jwt", token);
         cookie.setHttpOnly(true);
