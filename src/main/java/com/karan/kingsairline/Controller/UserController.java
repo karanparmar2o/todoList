@@ -35,7 +35,16 @@ public class UserController {
     }
 
     @PostMapping("/users")
-    public ResponseEntity<User> createUser(@RequestBody User user){
+    public ResponseEntity<?> createUser(@RequestBody User user){
+        if (urepo.findByEmail(user.getEmail()) != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT) // 409
+                    .body("Email already registered");
+        }
+        if (urepo.findByUname(user.getUname()) != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT) // 409
+                    .body("Username already registered");
+        }
+
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
@@ -78,7 +87,7 @@ public class UserController {
                 System.out.println("user is not null, password: " + user.getPassword());
             }
 
-            if (user == null /*|| !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())*/) {
+            if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                 System.out.println("password is wrong");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body("Invalid email or password");
@@ -109,9 +118,16 @@ public class UserController {
 
     @GetMapping("/user/me")
     public ResponseEntity<User> getLoggedInUser(@CookieValue("jwt") String token) {
+        System.out.println("inside me method");
         String email = jwtUtil.validateTokenAndGetEmail(token);
+        System.out.println("inside me method 1");
+
         User user = urepo.findByEmail(email);
+        System.out.println("inside me method 2");
+
         user.setPassword(null);
+        System.out.println("inside me method 4");
+
         return ResponseEntity.ok(user);
     }
 
