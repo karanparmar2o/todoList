@@ -9,13 +9,12 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-
 import java.util.*;
+
 @RestController
 @RequestMapping("/api/v1/")
 public class UserController {
@@ -37,17 +36,15 @@ public class UserController {
     @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestBody User user){
         if (urepo.findByEmail(user.getEmail()) != null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT) // 409
+            return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Email already registered");
         }
         if (urepo.findByUname(user.getUname()) != null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT) // 409
+            return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Username already registered");
         }
 
-
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-
         User savedUser = urepo.save(user);
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
@@ -59,6 +56,7 @@ public class UserController {
 
         return ResponseEntity.ok(user);
     }
+
     @PutMapping("/user/{id}")
     public ResponseEntity<User> UpdateUser(@PathVariable int id, @RequestBody User userDetail){
         User user = urepo.findById(id)
@@ -68,19 +66,20 @@ public class UserController {
         user.setPassword(userDetail.getPassword());
         return ResponseEntity.ok(user);
     }
+
     @DeleteMapping("/user/{id}")
     public ResponseEntity<User> DeleteUser(@PathVariable int id){
-        User user=urepo.findById(id).orElseThrow(()->new ResourceNotFoundException("User not Found"));
+        User user = urepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not Found"));
         urepo.delete(user);
         return ResponseEntity.ok(user);
     }
+
     @PostMapping("/users/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
         try {
             User user = urepo.findByEmail(loginRequest.getEmail());
             System.out.println("inside login");
 
-            // Add explicit null-check and print
             if (user == null) {
                 System.out.println("user is null");
             } else {
@@ -106,7 +105,7 @@ public class UserController {
                 return ResponseEntity.ok("Login Successful.");
             } catch (Exception e) {
                 System.out.println("JWT Generation Error: " + e.getMessage());
-                e.printStackTrace();  // 👈 make sure stack trace shows full error
+                e.printStackTrace();
                 return ResponseEntity.status(500).body("JWT Exception: " + e.getMessage());
             }
 
@@ -117,20 +116,27 @@ public class UserController {
     }
 
     @GetMapping("/user/me")
-    public ResponseEntity<User> getLoggedInUser(@CookieValue("jwt") String token) {
+    public ResponseEntity<?> getLoggedInUser(@CookieValue(value = "jwt", required = false) String token) {
         System.out.println("inside me method");
-        String email = jwtUtil.validateTokenAndGetEmail(token);
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("JWT cookie missing");
+        }
+        String email;
+        try {
+            email = jwtUtil.validateTokenAndGetEmail(token);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired JWT");
+        }
         System.out.println("inside me method 1");
 
         User user = urepo.findByEmail(email);
         System.out.println("inside me method 2");
-
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
         user.setPassword(null);
         System.out.println("inside me method 4");
 
         return ResponseEntity.ok(user);
     }
-
-
-
 }
