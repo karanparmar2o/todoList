@@ -1,9 +1,6 @@
 package com.karan.kingsairline.modules;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
@@ -13,4 +10,8 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
     String category;
+    String discription;
+
+    @ManyToOne
+    private User user;
 }

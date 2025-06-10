@@ -24,119 +24,107 @@ public class UserController {
     private JwtUtil jwtUtil;
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
+
     public UserController() {
         System.out.println("UserController loaded");
     }
 
     @GetMapping("/users")
-    public List<User> getAllUsers(){
-        return urepo.findAll();
+    public List<User> getAllUsers() {
+        List<User> users = urepo.findAll();
+        // Remove passwords before returning
+        users.forEach(user -> user.setPassword(null));
+        return users;
     }
 
     @PostMapping("/users")
-    public ResponseEntity<?> createUser(@RequestBody User user){
+    public ResponseEntity<?> createUser(@RequestBody User user) {
         if (urepo.findByEmail(user.getEmail()) != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Email already registered");
+                    .body(Map.of("error", "Email already registered"));
         }
         if (urepo.findByUname(user.getUname()) != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Username already registered");
+                    .body(Map.of("error", "Username already registered"));
         }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         User savedUser = urepo.save(user);
+        savedUser.setPassword(null);
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
 
     @GetMapping("/user/{id}")
-    public ResponseEntity<User> getUserByName(@PathVariable int id){
+    public ResponseEntity<?> getUserById(@PathVariable int id) {
         User user = urepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-
+        user.setPassword(null);
         return ResponseEntity.ok(user);
     }
 
     @PutMapping("/user/{id}")
-    public ResponseEntity<User> UpdateUser(@PathVariable int id, @RequestBody User userDetail){
+    public ResponseEntity<?> updateUser(@PathVariable int id, @RequestBody User userDetail) {
         User user = urepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setUname(userDetail.getUname());
         user.setEmail(userDetail.getEmail());
-        user.setPassword(userDetail.getPassword());
-        return ResponseEntity.ok(user);
+        if (userDetail.getPassword() != null && !userDetail.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userDetail.getPassword()));
+        }
+        User updatedUser = urepo.save(user);
+        updatedUser.setPassword(null);
+        return ResponseEntity.ok(updatedUser);
     }
 
     @DeleteMapping("/user/{id}")
-    public ResponseEntity<User> DeleteUser(@PathVariable int id){
+    public ResponseEntity<?> deleteUser(@PathVariable int id) {
         User user = urepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not Found"));
         urepo.delete(user);
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
     }
 
     @PostMapping("/users/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
         try {
             User user = urepo.findByEmail(loginRequest.getEmail());
-            System.out.println("inside login");
-
-            if (user == null) {
-                System.out.println("user is null");
-            } else {
-                System.out.println("user is not null, password: " + user.getPassword());
-            }
-
             if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-                System.out.println("password is wrong");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Invalid email or password");
+                        .body(Map.of("error", "Invalid email or password"));
             }
-            System.out.println("login success 1");
-            try {
-                String token = jwtUtil.generateToken(user.getEmail());
-                System.out.println("login success 2");
+            String token = jwtUtil.generateToken(user.getEmail());
 
-                Cookie cookie = new Cookie("jwt", token);
-                cookie.setHttpOnly(true);
-                cookie.setPath("/");
-                response.addCookie(cookie);
+            Cookie cookie = new Cookie("jwt", token);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            // Only set Secure in production
+            // if (isProduction()) { cookie.setSecure(true); }
+            response.addCookie(cookie);
 
-                System.out.println("login success");
-                return ResponseEntity.ok("Login Successful.");
-            } catch (Exception e) {
-                System.out.println("JWT Generation Error: " + e.getMessage());
-                e.printStackTrace();
-                return ResponseEntity.status(500).body("JWT Exception: " + e.getMessage());
-            }
-
+            user.setPassword(null);
+            // Return user info as JSON
+            return ResponseEntity.ok(Map.of("message", "Login Successful", "user", user));
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "Internal server error: " + e.getMessage()));
         }
     }
 
     @GetMapping("/user/me")
     public ResponseEntity<?> getLoggedInUser(@CookieValue(value = "jwt", required = false) String token) {
-        System.out.println("inside me method");
         if (token == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("JWT cookie missing");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "JWT cookie missing"));
         }
         String email;
         try {
             email = jwtUtil.validateTokenAndGetEmail(token);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired JWT");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid or expired JWT"));
         }
-        System.out.println("inside me method 1");
-
         User user = urepo.findByEmail(email);
-        System.out.println("inside me method 2");
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
         }
         user.setPassword(null);
-        System.out.println("inside me method 4");
-
         return ResponseEntity.ok(user);
     }
 }
