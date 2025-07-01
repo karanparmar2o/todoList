@@ -95,10 +95,11 @@ public class UserController {
 
             Cookie cookie = new Cookie("jwt", token);
             cookie.setHttpOnly(true);
+            cookie.setSecure(true); // important if SameSite=None
             cookie.setPath("/");
-            // Only set Secure in production
-            // if (isProduction()) { cookie.setSecure(true); }
-            response.addCookie(cookie);
+            response.addCookie(cookie);// Important if frontend and backend are on different origins
+            response.addHeader("Set-Cookie",
+                    "jwt=" + token + "; Path=/; HttpOnly; Secure; SameSite=None");
 
             user.setPassword(null);
             // Return user info as JSON

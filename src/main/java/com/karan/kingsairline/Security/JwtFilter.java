@@ -78,8 +78,8 @@ public class JwtFilter extends OncePerRequestFilter {
         // Only skip login and registration endpoints (POST), NOT /user/me!
         return path.equals("/api/v1/users/login")
                 || (path.equals("/api/v1/users") && "POST".equalsIgnoreCase(request.getMethod()))
-                || path.equals("/api/v1/user/me")
-                || path.equals("/api/v1/categories") || path.startsWith("/api/v1/categories/")
+//                || path.equals("/api/v1/user/me")
+//                || path.equals("/api/v1/categories") || path.startsWith("/api/v1/categories/")
                 || path.startsWith("/public/");
     }
 }

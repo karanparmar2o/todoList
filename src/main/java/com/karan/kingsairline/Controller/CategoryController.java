@@ -40,7 +40,7 @@ public class CategoryController {
         if (optionalCategory.isPresent()) {
             Category category = optionalCategory.get();
             category.setCategory(updatedCategory.getCategory());
-            category.setDiscription(updatedCategory.getDiscription());
+            category.setDescription(updatedCategory.getDescription());
             return categoryRepo.save(category);
         } else {
             throw new RuntimeException("Category not found");

@@ -10,7 +10,7 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
     String category;
-    String discription;
+    String description;
 
     @ManyToOne
     private User user;
